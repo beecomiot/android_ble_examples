@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <string name="ble_not_supported">不支持低功耗蓝牙</string>
+    <string name="label_data">数据:</string>
+    <string name="label_device_address">设备地址:</string>
+    <string name="label_state">状态:</string>
+    <string name="no_data">无数据</string>
+    <string name="connected">已连接</string>
+    <string name="disconnected">链接断开</string>
+    <string name="title_devices">扫描蓝牙设备</string>
+    <string name="error_bluetooth_not_supported">不支持蓝牙。</string>
+    <string name="turn_on_bluetooth_note">请先打开蓝牙.</string>
+
+    <string name="start">开始</string>
+    <string name="stop">停止</string>
+    <string name="mode">模式</string>
+    <string name="idle">待机</string>
+    <string name="strength">强度</string>
+
+    <string name="unknown_device">未知设备</string>
+    <string name="unknown_characteristic">未知特征值</string>
+    <string name="unknown_service">未知服务</string>
+
+    <!-- Menu items -->
+    <string name="menu_connect">连接</string>
+    <string name="menu_disconnect">断开连接</string>
+    <string name="menu_scan">扫描</string>
+    <string name="menu_stop">停止</string>
+</resources>
