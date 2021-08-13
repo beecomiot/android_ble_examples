@@ -57,7 +57,8 @@ import java.util.ArrayList;
 public class DeviceScanActivity extends ListActivity {
     public static final String TAG = "DeviceScanActivity";
     public static int REQUEST_CODE_ACCESS_COARSE_LOCATION = 1;
-    public static final String DEVICE_PREFIX = "BC-Massager";
+    public static int PERMISSION_READ_STATE = 2;
+    public static final String DEVICE_PREFIX = "SYD";
 
     public static final int MSG_PERIOD = 0;
     public static final int MSG_STOP_SCAN = 1;
@@ -242,7 +243,17 @@ public class DeviceScanActivity extends ListActivity {
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                         DeviceScanActivity.REQUEST_CODE_ACCESS_COARSE_LOCATION);
+
+
             }
+
+//            if (ContextCompat.checkSelfPermission(this,
+//                    Manifest.permission.READ_PHONE_STATE)  != PackageManager.PERMISSION_GRANTED) {
+//
+//                ActivityCompat.requestPermissions(this,
+//                        new String[]{Manifest.permission.READ_PHONE_STATE},
+//                        DeviceScanActivity.PERMISSION_READ_STATE);
+//            }
         }
 
         /** start period handler */
@@ -313,6 +324,7 @@ public class DeviceScanActivity extends ListActivity {
             finish();
             return;
         }
+
         super.onActivityResult(requestCode, resultCode, data);
     }
 

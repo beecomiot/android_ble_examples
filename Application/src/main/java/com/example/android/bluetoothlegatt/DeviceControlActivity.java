@@ -16,6 +16,7 @@
 
 package com.example.android.bluetoothlegatt;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
@@ -25,8 +26,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,11 +46,15 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.lang.ref.WeakReference;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * For a given BLE device, this Activity provides the user interface to connect, display data,
@@ -51,7 +64,7 @@ import java.util.UUID;
  */
 public class DeviceControlActivity extends Activity {
 
-
+    private final int READ_PERIOD = 1000;
 
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
 
@@ -69,12 +82,19 @@ public class DeviceControlActivity extends Activity {
 
     private LinearLayout workLayout;
     private ProgressBar progressBar;
-    private TextView workTextView;
-    private Button startButton;
-    private Button stopButton;
-    private Button modeButton;
-    private Button plusButton;
-    private Button minusButton;
+
+    private TextView heartRate;
+    private TextView blood;
+    private TextView steps;
+    private TextView dateAndTime;
+    private Button dateTimeUpdate;
+
+//    private TextView workTextView;
+//    private Button startButton;
+//    private Button stopButton;
+//    private Button modeButton;
+//    private Button plusButton;
+//    private Button minusButton;
 
     private TextView mConnectionState;
     private TextView mDataField;
@@ -85,10 +105,19 @@ public class DeviceControlActivity extends Activity {
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private boolean mConnected = false;
+    private boolean isAppFront = false;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
+
+    private final MyHandler mHandler = new MyHandler(this);
+
+    private TelephonyManager telephonyManager;
+    private MyPhoneStateListener myPhoneStateListener;
+
+
+
 
     void setStrength(int s) {
         if(0 == s) {
@@ -145,11 +174,12 @@ public class DeviceControlActivity extends Activity {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBluetoothLeService.getSupportedGattServices());
                 displayWorkLayout();
-                enableNotify();
+                // enableNotify();
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 // displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                byte[] data = intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA);
 
-                parseNotification(intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA));
+                parseNotification(data);
             }
         }
     };
@@ -193,9 +223,42 @@ public class DeviceControlActivity extends Activity {
         mDataField.setText(R.string.no_data);
     }
 
-    private byte[] updateData() {
-        byte[] data = new byte[] {'B', 'C', 0x00, 0x00, 0x23, 0x33, 0x10, 00, (byte)(strength & 0xFF), (byte)(mode & 0xFF), 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00};
+    private byte[] updateDateTimeType() {
+        Calendar ca = Calendar.getInstance();
+        int year = ca.get(Calendar.YEAR);
+        int month = ca.get(Calendar.MONTH) + 1;
+        int day = ca.get(Calendar.DATE);
+        int hour = ca.get(Calendar.HOUR_OF_DAY);
+        int minute = ca.get(Calendar.MINUTE);
+        int second = ca.get(Calendar.SECOND);
+
+        if(year < 2021) {
+            year = 2021;
+        }
+        year = year - 2000;
+
+        byte[] data = new byte[] {0x00, (byte)(year & 0xFF), (byte)(month & 0xFF), (byte)(day & 0xFF), (byte)(hour & 0xFF), (byte)(minute & 0xFF), (byte)(second & 0xFF), 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        return data;
+    }
+
+    private byte[] phonecallType(boolean enable, String phone) {
+
+        byte e = enable ? (byte)0x01 : (byte)0;
+        byte[] data;
+
+        if(enable && phone != null && phone.length() > 0) {
+            byte[] phoneArray = phone.getBytes();
+            data = new byte[]{0x01, e, (byte)phoneArray.length, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+            for(int i = 0; i < phoneArray.length && i < 17; i++) {
+                data[3 + i] = phoneArray[i];
+            }
+        } else {
+            data = new byte[]{0x01, e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        }
         return data;
     }
 
@@ -211,66 +274,80 @@ public class DeviceControlActivity extends Activity {
         // Sets up UI references.
         workLayout = findViewById(R.id.work_layout);
         progressBar = findViewById(R.id.loading_progress);
-        workTextView = findViewById(R.id.work_text);
-        startButton = findViewById(R.id.start_button);
-        stopButton = findViewById(R.id.stop_button);
-        modeButton = findViewById(R.id.mode_button);
-        plusButton = findViewById(R.id.strength_plus);
-        minusButton = findViewById(R.id.strength_minus);
+//        workTextView = findViewById(R.id.work_text);
+//        startButton = findViewById(R.id.start_button);
+//        stopButton = findViewById(R.id.stop_button);
+//        modeButton = findViewById(R.id.mode_button);
+//        plusButton = findViewById(R.id.strength_plus);
+//        minusButton = findViewById(R.id.strength_minus);
 
-        startButton.setOnClickListener(new View.OnClickListener() {
+        heartRate = findViewById(R.id.heart_rate_value);
+        blood = findViewById(R.id.blood_value);
+        steps = findViewById(R.id.steps_value);
+        dateAndTime = findViewById(R.id.time_value);
+        dateTimeUpdate = findViewById(R.id.update_time);
+
+//        startButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                mBluetoothLeService.writeBleData(updateData());
+//            }
+//        });
+//
+//        plusButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                int s = strength;
+//                s++;
+//                setStrength(s);
+//                mBluetoothLeService.writeBleData(updateData());
+//            }
+//        });
+//
+//        minusButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                int s = strength;
+//                s--;
+//                setStrength(s);
+//                mBluetoothLeService.writeBleData(updateData());
+//            }
+//        });
+//
+//        stopButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                setStrength(0);
+//                mBluetoothLeService.writeBleData(updateData());
+//            }
+//        });
+//
+//        modeButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                switch (mode) {
+//                    case MODE_1:
+//                    mode = MODE_2;
+//                    break;
+//                    case MODE_2:
+//                        mode = MODE_3;
+//                        break;
+//                    case MODE_3:
+//                        mode = MODE_1;
+//                        break;
+//                    default:
+//                        mode = MODE_1;
+//                        break;
+//                }
+//                mBluetoothLeService.writeBleData(updateData());
+//            }
+//        });
+
+        dateTimeUpdate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mBluetoothLeService.writeBleData(updateData());
-            }
-        });
-
-        plusButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int s = strength;
-                s++;
-                setStrength(s);
-                mBluetoothLeService.writeBleData(updateData());
-            }
-        });
-
-        minusButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int s = strength;
-                s--;
-                setStrength(s);
-                mBluetoothLeService.writeBleData(updateData());
-            }
-        });
-
-        stopButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                setStrength(0);
-                mBluetoothLeService.writeBleData(updateData());
-            }
-        });
-
-        modeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                switch (mode) {
-                    case MODE_1:
-                    mode = MODE_2;
-                    break;
-                    case MODE_2:
-                        mode = MODE_3;
-                        break;
-                    case MODE_3:
-                        mode = MODE_1;
-                        break;
-                    default:
-                        mode = MODE_1;
-                        break;
-                }
-                mBluetoothLeService.writeBleData(updateData());
+                mBluetoothLeService.writeBleData(updateDateTimeType());
+                // mBluetoothLeService.readBleData();
             }
         });
 
@@ -286,11 +363,30 @@ public class DeviceControlActivity extends Activity {
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
 
         displayProgress();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.READ_PHONE_STATE)  != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_PHONE_STATE,
+                                Manifest.permission.READ_CALL_LOG},
+                        DeviceScanActivity.PERMISSION_READ_STATE);
+            }
+        }
+
+        Message message = Message.obtain(mHandler);
+        mHandler.sendMessageDelayed(message, READ_PERIOD);
+
+        telephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+        myPhoneStateListener = new MyPhoneStateListener();
+        telephonyManager.listen(myPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        isAppFront = true;
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         if (mBluetoothLeService != null) {
             final boolean result = mBluetoothLeService.connect(mDeviceAddress);
@@ -302,6 +398,7 @@ public class DeviceControlActivity extends Activity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(mGattUpdateReceiver);
+        isAppFront = false;
     }
 
     @Override
@@ -309,6 +406,7 @@ public class DeviceControlActivity extends Activity {
         super.onDestroy();
         unbindService(mServiceConnection);
         mBluetoothLeService = null;
+        telephonyManager.listen(myPhoneStateListener, PhoneStateListener.LISTEN_NONE);
     }
 
     @Override
@@ -359,40 +457,84 @@ public class DeviceControlActivity extends Activity {
     }
 
     private void parseNotification(byte[] data) {
+        if(null == data) {
+            return;
+        }
         final StringBuilder stringBuilder = new StringBuilder(data.length);
         for(byte byteChar : data)
             stringBuilder.append(String.format("%02X ", byteChar));
 
-        // 01 D3 33 E4 C2 84 00 00 00 00 00 00 00 00 00 08 00 05 0D 00
+        Long tmp = new Long(0);
+        String str = new String();
+        int i = 0;
         Log.d("PARSING", stringBuilder.toString());
-        String workText = getString(R.string.idle);
+        if(data.length < 13) return;
 
-        if(data.length >= 20) {
-            if(data[8] != 0 && data[9] != 0 && strength != 0) {
-                String modeStr;
-                switch (data[13])
-                {
-                    case MODE_1:
-                        modeStr = "1";
-                        break;
-                    case MODE_2:
-                        modeStr = "2";
-                        break;
-                    case MODE_3:
-                        modeStr = "3";
-                        break;
-                    default:
-                        modeStr = "1";
-                        break;
-                }
-                workText = getString(R.string.mode) + ":" + modeStr + "  " + getString(R.string.strength) + ":" + data[18];
-            } else {
-                workText = getString(R.string.idle);
-            }
+        tmp = (long)data[i++] & 0xFF;
+        str = tmp == 0 ? getString(R.string.value_null) : tmp.toString();
+        heartRate.setText(str);
 
-        }
+        tmp = (long)data[i++] & 0xFF;
+        str = (tmp == 0 ? getString(R.string.value_null) : tmp.toString())+ "/";
+        tmp = (long)data[i++] & 0xFF;
+        str += tmp == 0 ? getString(R.string.value_null) : tmp.toString();
+        blood.setText(str);
 
-        workTextView.setText(workText);
+        tmp = (long)data[i++] & 0xFF;
+        tmp = (tmp << 8) + ((long)data[i++] & 0xFF);
+        tmp = (tmp << 8) + ((long)data[i++] & 0xFF);
+        tmp = (tmp << 8) + ((long)data[i++] & 0xFF);
+        str = tmp.toString();
+        steps.setText(str);
+
+        tmp =2000 + ((long)data[i++] & 0xFF);
+        str = tmp.toString() + ":";
+        tmp = (long)data[i++] & 0xFF;
+        // str += tmp.toString() + ":";
+        str += String.format("%02d", tmp) + ":";
+        tmp = (long)data[i++] & 0xFF;
+        // str += tmp.toString() + ",";
+        str += String.format("%02d", tmp) + ", ";
+        tmp = (long)data[i++] & 0xFF;
+        // str += tmp.toString() + ":";
+        str += String.format("%02d", tmp) + ":";
+        tmp = (long)data[i++] & 0xFF;
+        // str += tmp.toString() + ":";
+        str += String.format("%02d", tmp) + ":";
+        tmp = (long)data[i++] & 0xFF;
+        // str += tmp.toString();
+        str += String.format("%02d", tmp);
+
+        dateAndTime.setText(str);
+
+//        String workText = getString(R.string.idle);
+//
+//        if(data.length >= 20) {
+//            if(data[8] != 0 && data[9] != 0 && strength != 0) {
+//                String modeStr;
+//                switch (data[13])
+//                {
+//                    case MODE_1:
+//                        modeStr = "1";
+//                        break;
+//                    case MODE_2:
+//                        modeStr = "2";
+//                        break;
+//                    case MODE_3:
+//                        modeStr = "3";
+//                        break;
+//                    default:
+//                        modeStr = "1";
+//                        break;
+//                }
+//                workText = getString(R.string.mode) + ":" + modeStr + "  " + getString(R.string.strength) + ":" + data[18];
+//            } else {
+//                workText = getString(R.string.idle);
+//            }
+//
+//        }
+
+        // workTextView.setText(workText);
     }
 
     // Demonstrates how to iterate through the supported GATT Services/Characteristics.
@@ -493,5 +635,68 @@ public class DeviceControlActivity extends Activity {
         return null;
     }
 
+    private static class MyHandler extends Handler {
+        WeakReference<DeviceControlActivity> mWeakActivity;
 
+        public MyHandler(DeviceControlActivity activity) {
+            this.mWeakActivity = new WeakReference<DeviceControlActivity>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            final DeviceControlActivity mActivity = mWeakActivity.get();
+            if (mActivity != null) {
+                mActivity.msgHandler(msg);
+            }
+        }
+    }
+
+    public void msgHandler(Message msg) {
+        try {
+            if(isAppFront) {
+                if (mConnected) {
+                    Log.d("MSG", "READ MSG");
+                    mBluetoothLeService.readBleData();
+                }
+            }
+
+        } catch (Exception e) {
+
+        }
+
+        Message message = Message.obtain(mHandler);
+        mHandler.sendMessageDelayed(message, READ_PERIOD);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == DeviceScanActivity.PERMISSION_READ_STATE && resultCode == Activity.RESULT_CANCELED) {
+            finish();
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    class MyPhoneStateListener extends PhoneStateListener {
+        @Override
+        public void onCallStateChanged(int state, String incomingNumber) {
+            super.onCallStateChanged(state, incomingNumber);
+            switch (state) {
+                // 如果电话铃响
+                case TelephonyManager.CALL_STATE_RINGING:
+                    Log.d("INCOMING", incomingNumber);
+                    if (mConnected) {
+                        mBluetoothLeService.writeBleData(phonecallType(true, incomingNumber));
+                    }
+                    break;
+                default:
+                    Log.d("INCOMING", incomingNumber);
+                    if (mConnected) {
+                        mBluetoothLeService.writeBleData(phonecallType(false, incomingNumber));
+                    }
+                    break;
+            }
+        }
+    }
 }

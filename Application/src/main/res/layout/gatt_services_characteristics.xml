@@ -52,7 +52,8 @@
     <LinearLayout android:orientation="horizontal"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:layout_margin="10dp">
+                  android:layout_margin="10dp"
+                  android:visibility="gone">
         <TextView android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
                   android:text="@string/label_data"
@@ -90,68 +91,125 @@
         android:orientation="vertical"
         android:visibility="invisible">
 
-        <TextView
-            android:id="@+id/work_text"
+        <LinearLayout
+            android:layout_marginTop="@dimen/margin_small"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/heart_rate_text"
+                    android:textSize="18sp"/>
+
+                <TextView
+                    android:id="@+id/heart_rate_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/value_null"
+                    android:layout_marginStart="@dimen/margin_tiny"
+                    android:textSize="18sp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/blood_text"
+                android:textSize="18sp"/>
+
+            <TextView
+                android:id="@+id/blood_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/value_null"
+                android:layout_marginStart="@dimen/margin_tiny"
+                android:textSize="18sp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_marginTop="@dimen/margin_small"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/steps_text"
+                    android:textSize="18sp"/>
+
+                <TextView
+                    android:id="@+id/steps_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/value_null"
+                    android:layout_marginStart="@dimen/margin_tiny"
+                    android:textSize="18sp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_marginTop="@dimen/margin_small"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/time_text"
+                    android:textSize="18sp"/>
+
+                <TextView
+                    android:id="@+id/time_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/value_null"
+                    android:layout_marginStart="@dimen/margin_tiny"
+                    android:textSize="18sp"/>
+            </LinearLayout>
+
+
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/update_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/idle"
-            android:textSize="32dp"
-            android:textColor="@android:color/holo_blue_light"
-            android:layout_gravity="center_horizontal"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/start_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/start"/>
-
-            <Button
-                android:id="@+id/stop_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/stop"/>
-
-            <Button
-                android:id="@+id/mode_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/mode"/>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/strength_plus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_margin="20dp"
-                android:layout_gravity="center"
-                android:textSize="40dp"
-                android:text="+" />
-
-            <Button
-                android:id="@+id/strength_minus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_margin="20dp"
-                android:layout_gravity="center"
-                android:textSize="40dp"
-                android:text="-" />
-        </LinearLayout>
+            android:layout_weight="1"
+            android:layout_margin="20dp"
+            android:padding="@dimen/margin_medium"
+            android:layout_gravity="center"
+            android:textSize="18sp"
+            android:text="@string/update_time" />
 
     </LinearLayout>
 

@@ -42,7 +42,9 @@ import java.util.UUID;
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
-    private final static UUID WRITE_UUID = UUID.fromString("000002967-0000-1000-8000-00805f9b34fb");
+    private final static UUID WRITE_UUID = UUID.fromString("0000033f1-0000-1000-8000-00805f9b34fb");
+
+    private final static UUID READ_UUID = UUID.fromString("00000ff01-0000-1000-8000-00805f9b34fb");
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -155,7 +157,7 @@ public class BluetoothLeService extends Service {
                 final StringBuilder stringBuilder = new StringBuilder(data.length);
                 for(byte byteChar : data)
                     stringBuilder.append(String.format("%02X ", byteChar));
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+                intent.putExtra(EXTRA_DATA, data);
             }
         }
         sendBroadcast(intent);
@@ -341,6 +343,25 @@ public class BluetoothLeService extends Service {
                 if(characteristic.getUuid().toString().equalsIgnoreCase(WRITE_UUID.toString())) {
                     characteristic.setValue(data);
                     mBluetoothGatt.writeCharacteristic(characteristic);
+                    break;
+                }
+
+            }
+        }
+    }
+
+    public void readBleData() {
+        List<BluetoothGattService> gattServices = mBluetoothGatt.getServices();
+
+        if(null == gattServices) return;
+
+        for (BluetoothGattService gattService : gattServices) {
+            List<BluetoothGattCharacteristic> gattCharacteristics =
+                    gattService.getCharacteristics();
+
+            for (BluetoothGattCharacteristic characteristic : gattCharacteristics) {
+                if(characteristic.getUuid().toString().equalsIgnoreCase(READ_UUID.toString())) {
+                    mBluetoothGatt.readCharacteristic(characteristic);
                     break;
                 }
 
