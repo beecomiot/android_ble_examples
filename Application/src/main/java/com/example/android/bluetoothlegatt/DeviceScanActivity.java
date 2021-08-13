@@ -58,7 +58,7 @@ public class DeviceScanActivity extends ListActivity {
     public static final String TAG = "DeviceScanActivity";
     public static int REQUEST_CODE_ACCESS_COARSE_LOCATION = 1;
     public static int PERMISSION_READ_STATE = 2;
-    public static final String DEVICE_PREFIX = "SYD";
+    public static final String DEVICE_PREFIX = "BLE";
 
     public static final int MSG_PERIOD = 0;
     public static final int MSG_STOP_SCAN = 1;
