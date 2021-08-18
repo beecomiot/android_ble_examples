@@ -3,7 +3,10 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="Application/src/main/res/layout/actionbar_indeterminate_progress.xml" value="0.30052083333333335" />
         <entry key="Application/src/main/res/layout/gatt_services_characteristics.xml" value="0.4109375" />
+        <entry key="Application/src/main/res/layout/listitem_device.xml" value="0.30052083333333335" />
+        <entry key="Application/src/template/res/drawable-anydpi/ic_warning.xml" value="0.34270833333333334" />
         <entry key="Application/src/template/res/drawable-v24/ic_launcher_foreground.xml" value="0.34270833333333334" />
         <entry key="Application/src/template/res/drawable/ic_launcher_background.xml" value="0.34270833333333334" />
         <entry key="Application/src/template/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.34270833333333334" />

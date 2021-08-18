@@ -18,6 +18,7 @@ package com.example.android.bluetoothlegatt;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -255,6 +256,13 @@ public class DeviceScanActivity extends ListActivity {
 //                        DeviceScanActivity.PERMISSION_READ_STATE);
 //            }
         }
+
+        AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setTitle("WARNING")
+                .setMessage("This APP is only for internal test!")
+                .setIcon(R.drawable.ic_warning)
+                .create();
+        alertDialog.show();
 
         /** start period handler */
 //        if(!mHandler.hasMessages(MSG_PERIOD)) {
