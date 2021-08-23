@@ -36,6 +36,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Telephony;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -129,6 +130,8 @@ public class DeviceScanActivity extends ListActivity {
                 Log.d(TAG, "DISCOVERED");
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 Log.d(TAG, "DATA AVAILABLE");
+            } else if(Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(action)) {
+                Log.d(TAG, "GOT SMS");
             }
         }
     };
@@ -589,6 +592,7 @@ public class DeviceScanActivity extends ListActivity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+
         return intentFilter;
     }
 }

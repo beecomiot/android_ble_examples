@@ -32,9 +32,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.provider.Telephony;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.telephony.PhoneStateListener;
+import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
@@ -64,6 +66,7 @@ import java.util.List;
  */
 public class DeviceControlActivity extends Activity {
 
+    public static final String SMS_INTENT = "com.example.android.bluetoothlegatt.sms";
     private final int READ_PERIOD = 1000;
 
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
@@ -180,6 +183,23 @@ public class DeviceControlActivity extends Activity {
                 byte[] data = intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA);
 
                 parseNotification(data);
+            }
+        }
+    };
+
+    private final BroadcastReceiver mSmsReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")){
+                Bundle bundle = intent.getExtras();           //---get the SMS message passed in---
+                SmsMessage[] msgs = null;
+                String msg_from;
+                if (bundle != null){
+                    Log.d("SMS", "Got the SMS");
+                    byte[] data = new byte[]{0x01, 1, 3, 'x', 'y', 'z', 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                    mBluetoothLeService.writeBleData(data);
+                }
             }
         }
     };
@@ -370,7 +390,8 @@ public class DeviceControlActivity extends Activity {
 
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.READ_PHONE_STATE,
-                                Manifest.permission.READ_CALL_LOG},
+                                Manifest.permission.READ_CALL_LOG,
+                                Manifest.permission.RECEIVE_SMS},
                         DeviceScanActivity.PERMISSION_READ_STATE);
             }
         }
@@ -381,6 +402,11 @@ public class DeviceControlActivity extends Activity {
         telephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         myPhoneStateListener = new MyPhoneStateListener();
         telephonyManager.listen(myPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+
+        final IntentFilter smsIntentFilter = new IntentFilter();
+        smsIntentFilter.addAction("android.provider.Telephony.SMS_RECEIVED");
+        registerReceiver(mSmsReceiver, smsIntentFilter);
+
     }
 
     @Override
@@ -610,6 +636,7 @@ public class DeviceControlActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(DeviceControlActivity.SMS_INTENT);
         return intentFilter;
     }
 
